@@ -17,6 +17,8 @@ jar {
 
 sourceSets.main.java.srcDirs = ['src']
 
+sourceSets.test.java.srcDirs = ['test']
+
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
     compile group: "com.google.code.gson", name: "gson", version: "2.5"

@@ -1,43 +1,64 @@
 package servicemanager.core;
 
-import com.google.gson.Gson;
-import com.sun.org.apache.xpath.internal.operations.Bool;
-import com.sun.tools.internal.ws.wsdl.document.jaxws.Exception;
+import apple.laf.JRSUIUtils;
+import servicemanager.tree.TreeNode;
 
-import javax.swing.tree.DefaultMutableTreeNode;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.lang.String.format;
+import static servicemanager.Utils.firstMatch;
 
 public class ServiceManager {
-    List<String> classList;
-    Map<String, Service> services;
+    List<String> mServiceList;
+    Map<String, Service> mServices;
+    TreeNode mDependencyTree;
 
-    public ServiceManager(List<String> classList){
-        this.classList = classList;
+    public ServiceManager(List<String> serviceList){
+        this.mServiceList = serviceList;
     }
 
     public void startServices() {
-        loadAndValidateServices(classList);
-        createDependencyTree(services);
+        loadAndValidateServices(mServiceList);
+        mDependencyTree = createServiceDependencyTree(mServices.values());
     }
 
-    private void createDependencyTree(Map<String, Service> services) {
-        // Store what nodes have already been calculated
-        Set<DefaultMutableTreeNode> calculatedNodes = new HashSet<DefaultMutableTreeNode>();
+    static TreeNode createServiceDependencyTree(Collection<Service> services) {
+        TreeNode rootNode = new TreeNode("root");
 
         // For each service, calculate its dependency tree
-        for (Map.Entry<String, Service> entry : services.entrySet()){
-            String serviceName = entry.getKey();
-            Service service = entry.getValue();
+        for (Service service : services){
+            rootNode.add(getDependenciesTreeRecur(services, service));
         }
+
+        return rootNode;
     }
 
-    private static DefaultMutableTreeNode treeNode(){
-        return new DefaultMutableTreeNode();
+
+    static TreeNode getDependenciesTreeRecur(Collection<Service> services, Service thisService) {
+        TreeNode newNode = new TreeNode(thisService);
+
+        Class[] dependencies = thisService.dependencies();
+        // Terminating condition
+        if (dependencies == null) {
+            return newNode;
+        }
+
+        for (Class contract : thisService.dependencies()) {
+            Service matchingService = getServiceForContract(services, contract);
+
+            if (matchingService == null) {
+                throw new IllegalStateException(format("Can't find service for contract %s", contract.getSimpleName()));
+            }
+
+            newNode.add(getDependenciesTreeRecur(services, matchingService));
+        }
+
+        return newNode;
+    }
+
+
+    static Service getServiceForContract(Collection<Service> services, Class<? extends ServiceContract> contract) {
+        return firstMatch(services, s -> s.contract() == contract);
     }
 
     public void loadAndValidateServices(List<String> classList){
@@ -49,7 +70,7 @@ public class ServiceManager {
         for (String className : classList){
             Service newService;
             try {
-                newService = instantiateClass(className);
+                newService = instantiateService(className);
             } catch (ClassNotFoundException e) {
                 String error = format("Could not find class: %s", className);
                 throw new IllegalArgumentException(error);
@@ -61,30 +82,19 @@ public class ServiceManager {
                 throw new IllegalArgumentException(error);
             }
 
-            if (services.containsKey(className)){
+            if (mServices.containsKey(className)){
                 String error = format("Tried to load class twice: %s", className);
                 throw new IllegalArgumentException(error);
             }
-            services.put(className, newService);
+            mServices.put(className, newService);
         }
     }
 
-    public static Service instantiateClass(String className) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    public static Service instantiateService(String className) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         return (Service) Class.forName(className).newInstance();
     }
 
     public Service getService(String serviceName){
-        return services.get(serviceName);
+        return mServices.get(serviceName);
     }
-
-    public static Boolean classExists(String className){
-        try {
-            Class.forName(className);
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-
-
 }

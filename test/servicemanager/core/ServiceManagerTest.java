@@ -1,11 +1,16 @@
 package servicemanager.core;
 
 import org.junit.Test;
+import servicemanager.annotations.Implements;
 
 import java.util.List;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+@Implements(contract = FirstTestServiceContract.class)
+class TestService extends Service {}
 
 public class ServiceManagerTest {
     @Test
@@ -14,26 +19,48 @@ public class ServiceManagerTest {
 
         ServiceManager manager = new ServiceManager(classes);
 
-        assertEquals(classes, manager.classList);
-    }
-
-    @Test(expected=IllegalArgumentException.class)
-    public void serviceManagerThrowsOnMissingClassName() {
-        List<String> classes = asList("one", "two", "three");
-
-        ServiceManager manager = new ServiceManager(classes);
-
-        manager.startServices();
+        assertEquals(classes, manager.mServiceList);
     }
 
     @Test
-    public void serviceManagerDoesntThrowOnRealClass() {
-        List<String> classes = asList("java.util.List");
+    public void instantiateServiceThrowsOnMissingClassName() {
+        String className = "NotAService";
 
-        ServiceManager manager = new ServiceManager(classes);
+        try {
+            ServiceManager.instantiateService(className);
+        } catch (Exception e) {
+            assert(e instanceof ClassNotFoundException);
+        }
+    }
 
-        manager.startServices();
+    @Test
+    public void instantiateServiceDoesntThrowOnRealClass() {
+        String className = "servicemanager.core.TestService";
 
-        assertEquals(classes, manager.classList);
+        Service service = null;
+        try {
+            service = ServiceManager.instantiateService(className);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Couldn't find Service");
+        }
+
+        assertEquals(TestService.class, service.getClass());
+    }
+
+    @Test
+    public void testGetServiceForContract() {
+        @Implements(contract = FirstTestServiceContract.class)
+        class TestService1 extends Service {}
+        @Implements(contract = SecondTestServiceContract.class)
+        class TestService2 extends Service {}
+
+        TestService1 service1 = new TestService1();
+        TestService2 service2 = new TestService2();
+
+        List<Service> services = asList(service1, service2);
+
+        assertEquals(service1, ServiceManager.getServiceForContract(services, FirstTestServiceContract.class));
     }
 }
+

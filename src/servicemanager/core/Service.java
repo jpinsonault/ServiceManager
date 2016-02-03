@@ -13,22 +13,22 @@ public class Service {
     void start() {}
     void stop() {}
 
-    Class contract() {
-        ensureAnnotated(Implements.class, Implements.class.getSimpleName());
+    Class<? extends ServiceContract> contract() {
+        if (!this.getClass().isAnnotationPresent(Implements.class)) {
+            String error = format("Missing annotation 'Implements' on class '%s'",
+                                  this.getClass().getSimpleName());
+            throw new RuntimeException(error);
+        }
+
         return this.getClass().getAnnotation(Implements.class).contract();
     }
 
-    Class[] dependencies() {
-        ensureAnnotated(Dependencies.class, Dependencies.class.getSimpleName());
-        return this.getClass().getAnnotation(Dependencies.class).services();
-    }
-
-    void ensureAnnotated(Class annotation, String name) {
-        if (!this.getClass().isAnnotationPresent(annotation)){
-            String error = format("Missing annotation '%s' on class '%s'",
-                    name,
-                    this.getClass().getSimpleName());
-            throw new RuntimeException(error);
+    Class<? extends ServiceContract>[] dependencies() {
+        if (this.getClass().isAnnotationPresent(Dependencies.class)) {
+            return this.getClass().getAnnotation(Dependencies.class).services();
+        }
+        else {
+            return null;
         }
     }
 }

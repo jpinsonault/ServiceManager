@@ -9,16 +9,13 @@ import static org.junit.Assert.*;
 
 interface FirstTestServiceContract extends ServiceContract {}
 interface SecondTestServiceContract extends ServiceContract {}
+interface ThirdTestServiceContract extends ServiceContract {}
+interface FourthTestServiceContract extends ServiceContract {}
+interface FifthTestServiceContract extends ServiceContract {}
 
 public class ServiceTest {
-
-    @Before
-    public void setUp() throws Exception {
-
-    }
-
     @Test
-    public void testContractSuccess() throws Exception {
+    public void testContractSuccess() {
         @Implements(contract = FirstTestServiceContract.class)
         class TestService extends Service {}
 
@@ -26,14 +23,14 @@ public class ServiceTest {
     }
 
     @Test(expected=RuntimeException.class)
-    public void testContractMissingImplementsFailure() throws Exception {
+    public void testContractMissingImplementsFailure() {
         class TestService extends Service {}
 
         new TestService().contract();
     }
 
     @Test
-    public void testDependenciesSuccess() throws Exception {
+    public void testDependenciesSuccess() {
         @Implements(contract = FirstTestServiceContract.class)
         @Dependencies(services = {FirstTestServiceContract.class,
                 SecondTestServiceContract.class})
@@ -44,25 +41,11 @@ public class ServiceTest {
         assertArrayEquals(new TestService().dependencies(), expectedServices);
     }
 
-    @Test(expected=RuntimeException.class)
-    public void testDependenciesMissingDependenciesFailure() throws Exception {
+    @Test
+    public void testNoDependenciesReturnsNull() {
         @Implements(contract = FirstTestServiceContract.class)
         class TestService extends Service {}
 
-        new TestService().dependencies();
-    }
-
-    @Test
-    public void testEnsureAnnotatedReturnsGoodException() throws Exception {
-        class TestService extends Service {}
-
-        try {
-            TestService service = new TestService();
-            service.dependencies();
-
-        } catch(RuntimeException e) {
-            assertEquals("Missing annotation 'Dependencies' on class 'TestService'",
-                         e.getMessage());
-        }
+        assertNull(new TestService().dependencies());
     }
 }

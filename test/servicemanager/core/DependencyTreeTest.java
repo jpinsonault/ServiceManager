@@ -7,6 +7,7 @@ import servicemanager.tree.TreeNode;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class DependencyTreeTest{
     @Implements(contract = FifthTestServiceContract.class)
@@ -95,5 +96,30 @@ public class DependencyTreeTest{
 
         // Make sure the third node contains service4
         assert(thirdNode.contains(service4));
+    }
+
+    @Test
+    public void duplicateContractsTest() {
+        @Implements(contract = SecondTestServiceContract.class)
+        class TestService2Duplicate extends Service {}
+
+        Service service2Duplicate = new TestService2Duplicate();
+        Service service2 = new TestService2();
+
+        Service[] services = {
+                service2Duplicate,
+                service2
+        };
+
+        TreeNode dependencyTree = ServiceManager.createServiceDependencyTree(asList(services));
+
+        try{
+            ServiceManager.checkForDuplicateContractImplementations(dependencyTree);
+            fail("Should not reach this point");
+        } catch(IllegalStateException e){
+            assertEquals(
+                    "Two services implement the same contract: SecondTestServiceContract",
+                    e.getMessage());
+        }
     }
 }

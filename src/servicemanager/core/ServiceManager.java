@@ -1,6 +1,5 @@
 package servicemanager.core;
 
-import apple.laf.JRSUIUtils;
 import servicemanager.tree.TreeNode;
 
 import java.util.*;
@@ -10,16 +9,42 @@ import static servicemanager.Utils.firstMatch;
 
 public class ServiceManager {
     List<String> mServiceList;
-    Map<String, Service> mServices;
+    Set<Service> mServices;
     TreeNode mDependencyTree;
 
     public ServiceManager(List<String> serviceList){
         this.mServiceList = serviceList;
+        loadAndValidateServices(mServiceList);
     }
 
     public void startServices() {
-        loadAndValidateServices(mServiceList);
-        mDependencyTree = createServiceDependencyTree(mServices.values());
+        mDependencyTree = createServiceDependencyTree(mServices);
+        checkForDuplicateContractImplementations(mDependencyTree);
+
+        for (TreeNode topLevelNode : mDependencyTree.childrenIterable()){
+
+        }
+    }
+
+    private void startServicesRecur() {
+
+    }
+
+    static void checkForDuplicateContractImplementations(TreeNode dependencyTree){
+        Set<Class<? extends ServiceContract>> contracts = new HashSet<>();
+
+        for (TreeNode node : dependencyTree.depthFirstIterable()){
+            Service service = (Service) node.getUserObject();
+            Class<? extends ServiceContract> contract = service.contract();
+
+            if (contracts.contains(contract)){
+                String error = format("Two services implement the same contract: %s", contract.getSimpleName());
+                throw new IllegalStateException(error);
+            }
+            else{
+                contracts.add(contract);
+            }
+        }
     }
 
     static TreeNode createServiceDependencyTree(Collection<Service> services) {
@@ -62,10 +87,7 @@ public class ServiceManager {
     }
 
     public void loadAndValidateServices(List<String> classList){
-        /* Ensures:
-           * all the classes are in the classpath
-           * only one implementation per service contract
-        */
+        // Ensures all the classes are in the classpath
 
         for (String className : classList){
             Service newService;
@@ -82,19 +104,15 @@ public class ServiceManager {
                 throw new IllegalArgumentException(error);
             }
 
-            if (mServices.containsKey(className)){
+            if (mServices.contains(newService)){
                 String error = format("Tried to load class twice: %s", className);
                 throw new IllegalArgumentException(error);
             }
-            mServices.put(className, newService);
+            mServices.add(newService);
         }
     }
 
     public static Service instantiateService(String className) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         return (Service) Class.forName(className).newInstance();
-    }
-
-    public Service getService(String serviceName){
-        return mServices.get(serviceName);
     }
 }

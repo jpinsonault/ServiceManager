@@ -28,6 +28,7 @@ public class ServiceManagerTest {
 
         try {
             ServiceManager.instantiateService(className);
+            fail("Should not reach this point");
         } catch (Exception e) {
             assert(e instanceof ClassNotFoundException);
         }
@@ -40,6 +41,7 @@ public class ServiceManagerTest {
         Service service = null;
         try {
             service = ServiceManager.instantiateService(className);
+            fail("Should not reach this point");
         } catch (Exception e) {
             e.printStackTrace();
             fail("Couldn't find Service");

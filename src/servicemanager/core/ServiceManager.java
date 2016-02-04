@@ -13,21 +13,61 @@ public class ServiceManager {
     TreeNode mDependencyTree;
 
     public ServiceManager(List<String> serviceList){
-        this.mServiceList = serviceList;
+        mServiceList = serviceList;
         loadAndValidateServices(mServiceList);
-    }
 
-    public void startServices() {
         mDependencyTree = createServiceDependencyTree(mServices);
         checkForDuplicateContractImplementations(mDependencyTree);
+    }
 
-        for (TreeNode topLevelNode : mDependencyTree.childrenIterable()){
+    public void initServices(){
+        initServices(mDependencyTree);
+    }
 
+    public void initServices(TreeNode dependencyTree){
+        ArrayList<Service> initedServices = new ArrayList<>();
+
+        for (TreeNode node : mDependencyTree.depthFirstIterable()){
+            Service service = (Service) node.getUserObject();
+            if (!initedServices.contains(service)){
+                service.init();
+                initedServices.add(service);
+            }
         }
     }
 
-    private void startServicesRecur() {
+    public void startServices(){
+        startServices(mDependencyTree);
+    }
 
+    public void startServices(TreeNode dependencyTree) {
+        initServices(dependencyTree);
+
+        ArrayList<Service> startedServices = new ArrayList<>();
+
+        for (TreeNode node : dependencyTree.depthFirstIterable()){
+            Service service = (Service) node.getUserObject();
+            if (!startedServices.contains(service)){
+                service.start();
+                startedServices.add(service);
+            }
+        }
+    }
+
+    public void stopServices(){
+        stopServices(mDependencyTree);
+    }
+
+    public void stopServices(TreeNode dependencyTree){
+        ArrayList<Service> stoppedServices = new ArrayList<>();
+
+        for (TreeNode node : dependencyTree.breadthFirstIterable()){
+            Service service = (Service) node.getUserObject();
+            if (!stoppedServices.contains(service)){
+                service.stop();
+                stoppedServices.add(service);
+            }
+        }
     }
 
     static void checkForDuplicateContractImplementations(TreeNode dependencyTree){
@@ -48,7 +88,8 @@ public class ServiceManager {
     }
 
     static TreeNode createServiceDependencyTree(Collection<Service> services) {
-        TreeNode rootNode = new TreeNode("root");
+        // Make top node an empty service
+        TreeNode rootNode = new TreeNode(new Service());
 
         // For each service, calculate its dependency tree
         for (Service service : services){

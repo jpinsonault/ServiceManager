@@ -37,6 +37,10 @@ public class TreeNode extends DefaultMutableTreeNode {
         return new EnumerationIterable(depthFirstEnumeration());
     }
 
+    public Iterable<TreeNode> breadthFirstIterable(){
+        return new EnumerationIterable(breadthFirstEnumeration());
+    }
+
     public Boolean contains(Object value){
         for (TreeNode node : this.depthFirstIterable()){
             if (node.getUserObject() == value){

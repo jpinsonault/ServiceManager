@@ -2,6 +2,7 @@ package servicemanager.core;
 
 import servicemanager.tree.TreeNode;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 import static java.lang.String.format;
@@ -89,7 +90,7 @@ public class ServiceManager {
 
     static TreeNode createServiceDependencyTree(Collection<Service> services) {
         // Make top node an empty service
-        TreeNode rootNode = new TreeNode(new Service());
+        TreeNode rootNode = new TreeNode(new Service(null));
 
         // For each service, calculate its dependency tree
         for (Service service : services){
@@ -122,6 +123,9 @@ public class ServiceManager {
         return newNode;
     }
 
+    public Service getServiceForContract(Class<? extends ServiceContract> contract){
+        return getServiceForContract(mServices, contract);
+    }
 
     static Service getServiceForContract(Collection<Service> services, Class<? extends ServiceContract> contract) {
         return firstMatch(services, s -> s.contract() == contract);
@@ -153,7 +157,12 @@ public class ServiceManager {
         }
     }
 
-    public static Service instantiateService(String className) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
-        return (Service) Class.forName(className).newInstance();
+    public Service instantiateService(String className) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+        try {
+            return (Service) Class.forName(className).getDeclaredConstructor().newInstance(this);
+        } catch (InvocationTargetException | NoSuchMethodException e) {
+            String error = format("Problem calling constructor on class: %s", className);
+            throw new IllegalStateException(error);
+        }
     }
 }

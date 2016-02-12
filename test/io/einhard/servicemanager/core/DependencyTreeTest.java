@@ -1,9 +1,9 @@
-package servicemanager.core;
+package io.einhard.servicemanager.core;
 
+import io.einhard.servicemanager.annotations.Dependencies;
+import io.einhard.servicemanager.annotations.Implements;
 import org.junit.Test;
-import servicemanager.annotations.Dependencies;
-import servicemanager.annotations.Implements;
-import servicemanager.tree.TreeNode;
+import io.einhard.servicemanager.tree.TreeNode;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
@@ -12,21 +12,41 @@ import static org.junit.Assert.fail;
 public class DependencyTreeTest{
     @Implements(contract = FifthTestServiceContract.class)
     @Dependencies(services = {ThirdTestServiceContract.class})
-    class TestService5 extends Service {}
+    class TestService5 extends Service {
+        public TestService5(ServiceManager serviceManager) {
+            super(serviceManager);
+        }
+    }
 
     @Implements(contract = FourthTestServiceContract.class)
-    class TestService4 extends Service {}
+    class TestService4 extends Service {
+        public TestService4(ServiceManager serviceManager) {
+            super(serviceManager);
+        }
+    }
 
     @Implements(contract = ThirdTestServiceContract.class)
     @Dependencies(services = {FourthTestServiceContract.class})
-    class TestService3 extends Service {}
+    class TestService3 extends Service {
+        public TestService3(ServiceManager serviceManager) {
+            super(serviceManager);
+        }
+    }
 
     @Implements(contract = SecondTestServiceContract.class)
-    class TestService2 extends Service {}
+    class TestService2 extends Service {
+        public TestService2(ServiceManager serviceManager) {
+            super(serviceManager);
+        }
+    }
 
     @Implements(contract = FirstTestServiceContract.class)
     @Dependencies(services = {SecondTestServiceContract.class, ThirdTestServiceContract.class})
-    class TestService1 extends Service {}
+    class TestService1 extends Service {
+        public TestService1(ServiceManager serviceManager) {
+            super(serviceManager);
+        }
+    }
 
     @Test
     public void createDependenciesTest() {
@@ -41,10 +61,10 @@ public class DependencyTreeTest{
         //   - Third
         //      - Fourth
 
-        Service service1 = new TestService1();
-        Service service2 = new TestService2();
-        Service service3 = new TestService3();
-        Service service4 = new TestService4();
+        Service service1 = new TestService1(null);
+        Service service2 = new TestService2(null);
+        Service service3 = new TestService3(null);
+        Service service4 = new TestService4(null);
 
         Service[] services = {
                 service1,
@@ -71,11 +91,11 @@ public class DependencyTreeTest{
         // - Fifth
         //   - Third
 
-        Service service1 = new TestService1();
-        Service service2 = new TestService2();
-        Service service3 = new TestService3();
-        Service service4 = new TestService4();
-        Service service5 = new TestService5();
+        Service service1 = new TestService1(null);
+        Service service2 = new TestService2(null);
+        Service service3 = new TestService3(null);
+        Service service4 = new TestService4(null);
+        Service service5 = new TestService5(null);
 
         Service[] services = {
                 service1,
@@ -101,20 +121,22 @@ public class DependencyTreeTest{
     @Test
     public void duplicateContractsTest() {
         @Implements(contract = SecondTestServiceContract.class)
-        class TestService2Duplicate extends Service {}
+        class TestService2Duplicate extends Service {
+            public TestService2Duplicate(ServiceManager serviceManager) {
+                super(serviceManager);
+            }
+        }
 
-        Service service2Duplicate = new TestService2Duplicate();
-        Service service2 = new TestService2();
+        Service service2Duplicate = new TestService2Duplicate(null);
+        Service service2 = new TestService2(null);
 
         Service[] services = {
                 service2Duplicate,
                 service2
         };
 
-        TreeNode dependencyTree = ServiceManager.createServiceDependencyTree(asList(services));
-
         try{
-            ServiceManager.checkForDuplicateContractImplementations(dependencyTree);
+            ServiceManager.checkForDuplicateContractImplementations(asList(services));
             fail("Should not reach this point");
         } catch(IllegalStateException e){
             assertEquals(

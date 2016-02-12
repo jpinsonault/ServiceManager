@@ -1,4 +1,4 @@
-package servicemanager.tree;
+package io.einhard.servicemanager.tree;
 
 import org.junit.Test;
 import static org.junit.Assert.*;

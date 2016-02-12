@@ -1,4 +1,4 @@
-package servicemanager.tree;
+package io.einhard.servicemanager.tree;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.util.Enumeration;

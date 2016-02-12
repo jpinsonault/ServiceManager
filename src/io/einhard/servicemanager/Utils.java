@@ -1,4 +1,4 @@
-package servicemanager;
+package io.einhard.servicemanager;
 
 
 import java.util.Collection;

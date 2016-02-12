@@ -1,12 +1,11 @@
-package servicemanager.core;
+package io.einhard.servicemanager.core;
 
-import com.sun.corba.se.spi.activation.ServerManager;
-import com.sun.istack.internal.Pool;
-import com.sun.xml.internal.ws.api.policy.PolicyResolver;
-import servicemanager.annotations.Dependencies;
-import servicemanager.annotations.Implements;
-
-import java.lang.annotation.Annotation;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+import io.einhard.servicemanager.annotations.Dependencies;
+import io.einhard.servicemanager.annotations.Implements;
+import io.einhard.servicemanager.services.ConfigService;
+import io.einhard.servicemanager.services.ConfigServiceContract;
 
 import static java.lang.String.format;
 
@@ -16,12 +15,24 @@ public class Service {
         mServiceManager = serviceManager;
     }
 
-    void init() {}
-    void start() {}
-    void stop() {}
+    public void init() {}
+    public void start() {}
+    public void stop() {}
 
     Service getService(Class<? extends ServiceContract> contract){
         return mServiceManager.getServiceForContract(contract);
+    }
+
+    public JsonObject getConfig(){
+        ConfigService configService = (ConfigService) mServiceManager.getServiceForContract(ConfigServiceContract.class);
+
+        return configService.getConfig();
+    }
+
+    public JsonValue getInConfig(String... keys){
+        ConfigService configService = (ConfigService) mServiceManager.getServiceForContract(ConfigServiceContract.class);
+
+        return configService.getInConfig(keys);
     }
 
     Class<? extends ServiceContract> contract() {

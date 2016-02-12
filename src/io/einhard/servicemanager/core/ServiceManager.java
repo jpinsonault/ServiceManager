@@ -1,34 +1,37 @@
-package servicemanager.core;
+package io.einhard.servicemanager.core;
 
-import servicemanager.tree.TreeNode;
+import com.eclipsesource.json.JsonObject;
+import io.einhard.servicemanager.Utils;
+import io.einhard.servicemanager.services.ConfigService;
+import io.einhard.servicemanager.tree.TreeNode;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 import static java.lang.String.format;
-import static servicemanager.Utils.firstMatch;
 
 public class ServiceManager {
-    List<String> mServiceList;
+    final JsonObject mConfig;
     Set<Service> mServices;
     TreeNode mDependencyTree;
 
-    public ServiceManager(List<String> serviceList){
-        mServiceList = serviceList;
-        loadAndValidateServices(mServiceList);
+    public ServiceManager(List<String> serviceList, JsonObject config){
+        mServices = new HashSet<>();
+        mConfig = config;
+        loadAndValidateServices(serviceList);
+        checkForDuplicateContractImplementations(mServices);
 
         mDependencyTree = createServiceDependencyTree(mServices);
-        checkForDuplicateContractImplementations(mDependencyTree);
     }
 
     public void initServices(){
         initServices(mDependencyTree);
     }
 
-    public void initServices(TreeNode dependencyTree){
+    public static void initServices(TreeNode dependencyTree){
         ArrayList<Service> initedServices = new ArrayList<>();
 
-        for (TreeNode node : mDependencyTree.depthFirstIterable()){
+        for (TreeNode node : dependencyTree.depthFirstIterable()){
             Service service = (Service) node.getUserObject();
             if (!initedServices.contains(service)){
                 service.init();
@@ -71,11 +74,10 @@ public class ServiceManager {
         }
     }
 
-    static void checkForDuplicateContractImplementations(TreeNode dependencyTree){
+    static void checkForDuplicateContractImplementations(Collection<Service> services){
         Set<Class<? extends ServiceContract>> contracts = new HashSet<>();
 
-        for (TreeNode node : dependencyTree.depthFirstIterable()){
-            Service service = (Service) node.getUserObject();
+        for (Service service : services){
             Class<? extends ServiceContract> contract = service.contract();
 
             if (contracts.contains(contract)){
@@ -128,16 +130,22 @@ public class ServiceManager {
     }
 
     static Service getServiceForContract(Collection<Service> services, Class<? extends ServiceContract> contract) {
-        return firstMatch(services, s -> s.contract() == contract);
+        return Utils.firstMatch(services, s -> s.contract() == contract);
     }
 
     public void loadAndValidateServices(List<String> classList){
         // Ensures all the classes are in the classpath
 
+        // The config service is hardcoded to be loaded unconditionally.
+        // Not sure if this is good, but it's integral to any other service
+        // that can be created, and it needs to be bootstrapped somehow
+        ConfigService configService = new ConfigService(this, mConfig);
+        mServices.add(configService);
+
         for (String className : classList){
             Service newService;
             try {
-                newService = instantiateService(className);
+                newService = instantiateService(className, this);
             } catch (ClassNotFoundException e) {
                 String error = format("Could not find class: %s", className);
                 throw new IllegalArgumentException(error);
@@ -145,8 +153,9 @@ public class ServiceManager {
                 String error = format("Could not instantiate class: %s", className);
                 throw new IllegalArgumentException(error);
             } catch (IllegalAccessException e) {
+                e.printStackTrace();
                 String error = format("Unknown problem loading class: %s", className);
-                throw new IllegalArgumentException(error);
+                throw new IllegalStateException(error);
             }
 
             if (mServices.contains(newService)){
@@ -157,11 +166,12 @@ public class ServiceManager {
         }
     }
 
-    public Service instantiateService(String className) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    public static Service instantiateService(String className, ServiceManager serviceManager) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         try {
-            return (Service) Class.forName(className).getDeclaredConstructor().newInstance(this);
-        } catch (InvocationTargetException | NoSuchMethodException e) {
+            return (Service) Class.forName(className).getDeclaredConstructors()[0].newInstance(serviceManager);
+        } catch (InvocationTargetException e) {
             String error = format("Problem calling constructor on class: %s", className);
+            e.printStackTrace();
             throw new IllegalStateException(error);
         }
     }

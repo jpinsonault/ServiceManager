@@ -1,2 +1,2 @@
-# com.servicemanager.ServiceManager
+# ServiceManager
 Java framework for managing long running applications

@@ -10,7 +10,7 @@ import io.einhard.servicemanager.services.ConfigServiceContract;
 import static java.lang.String.format;
 
 public class Service {
-    private ServiceManager mServiceManager;
+    protected ServiceManager mServiceManager;
     public Service(ServiceManager serviceManager){
         mServiceManager = serviceManager;
     }
@@ -19,7 +19,7 @@ public class Service {
     public void start() {}
     public void stop() {}
 
-    Service getService(Class<? extends ServiceContract> contract){
+    public Service getService(Class<? extends ServiceContract> contract){
         return mServiceManager.getServiceForContract(contract);
     }
 

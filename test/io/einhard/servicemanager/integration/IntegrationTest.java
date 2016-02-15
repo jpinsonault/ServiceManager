@@ -14,10 +14,9 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 interface PointlessServiceContract extends ServiceContract {
     public int intFromConfig();
@@ -25,6 +24,8 @@ interface PointlessServiceContract extends ServiceContract {
     public Boolean isStarted();
     public Boolean isStopped();
 }
+
+interface EmptyContract extends ServiceContract {}
 
 public class IntegrationTest {
     @Test
@@ -53,5 +54,20 @@ public class IntegrationTest {
         serviceManager.stopServices();
 
         assertTrue(pointlessService.isStopped());
+    }
+
+    @Test
+    public void requestShutdownTest() {
+        // This test starts a service that spawns a thread that immediately requests a shutdown
+        String[] services = {ShutdownRequestTestService.class.getName()};
+        ServiceManager serviceManager = new ServiceManager(Arrays.asList(services), null);
+
+        try {
+            String shutdownReason = serviceManager.runUntilShutdown();
+            assertEquals("I feel like it", shutdownReason);
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            fail();
+        }
     }
 }

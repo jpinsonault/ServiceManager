@@ -7,6 +7,9 @@ import io.einhard.servicemanager.tree.TreeNode;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Logger;
 
 import static java.lang.String.format;
 
@@ -14,6 +17,9 @@ public class ServiceManager {
     final JsonObject mConfig;
     Set<Service> mServices;
     TreeNode mDependencyTree;
+    CompletableFuture<String> shutdownReason;
+
+    public final static Logger logger = Logger.getLogger(ServiceManager.class.getName());
 
     public ServiceManager(List<String> serviceList, JsonObject config){
         mServices = new HashSet<>();
@@ -22,6 +28,8 @@ public class ServiceManager {
         checkForDuplicateContractImplementations(mServices);
 
         mDependencyTree = createServiceDependencyTree(mServices);
+
+        shutdownReason = new CompletableFuture<>();
     }
 
     public void initServices(){
@@ -174,5 +182,24 @@ public class ServiceManager {
             e.printStackTrace();
             throw new IllegalStateException(error);
         }
+    }
+
+    public void requestShutdown(String reason){
+        logger.info(format("Shutdown requested:\n%s", reason));
+
+        try {
+            stopServices();
+            shutdownReason.complete(reason);
+        } catch (Exception e){
+            logger.severe(format("Error during service shutdown:\n%s", e.getMessage()));
+            shutdownReason.complete(e.getMessage());
+        }
+    }
+
+    public String runUntilShutdown() throws ExecutionException, InterruptedException {
+        startServices();
+
+        // Blocks until the shutdownReason is completed.
+        return shutdownReason.get();
     }
 }
